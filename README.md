@@ -10,10 +10,11 @@ A free, offline-friendly web app for piano technicians. Build itemized estimates
 - **Invoices** — Convert estimates to invoices with one click; track draft / sent / paid / overdue status
 - **Company settings** — Add your logo, slogan, contact info, Google review link, and accepted payment methods; they appear automatically on all documents
 - **Backup & restore** — Export all your data as a JSON file and re-import it at any time; your data never leaves your browser
+- **Installable PWA** — Install on desktop or mobile and use fully offline; the app caches itself automatically via a service worker
 
 ## Running locally
 
-**Requirements:** Node.js 18+
+**Requirements:** Node.js 26.2.0+ (a `.nvmrc` is included — run `nvm use` if you use nvm)
 
 ```bash
 git clone https://github.com/clirette/piano-tech-biz-tools.git
@@ -28,7 +29,14 @@ Other commands:
 npm run build      # Production build → dist/
 npm run preview    # Preview the production build locally
 npm run lint       # Run ESLint
+npm test           # Run tests (vitest)
+npm run test:watch # Watch mode
+npm run coverage   # Coverage report
 ```
+
+## PWA / offline support
+
+The app is a [Progressive Web App](https://web.dev/progressive-web-apps/). When deployed, a Workbox service worker pre-caches all static assets so the app loads and works without a network connection. Browsers supporting the Web App Manifest will offer an "Add to Home Screen" / "Install" prompt.
 
 ## Contributing
 

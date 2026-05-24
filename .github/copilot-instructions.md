@@ -11,9 +11,12 @@ npm run dev       # Start dev server at http://localhost:5173
 npm run build     # Production build (tsc -b && vite build) → dist/
 npm run preview   # Preview production build locally
 npm run lint      # Run ESLint
+npm test          # Run tests once (vitest run)
+npm run test:watch # Tests in watch mode
+npm run coverage  # Coverage report
 ```
 
-There is no test suite.
+**Node requirement:** 26.2.0+ (`.nvmrc` is included).
 
 ## Architecture
 
@@ -26,7 +29,12 @@ src/
   utils/            # Pure helpers: currency, calculations, pdf, backup, generateId
   App.tsx           # Route definitions (HashRouter)
   main.tsx
+  test/setup.ts     # Vitest global setup (localStorage mock, matchMedia stub)
 ```
+
+### PWA
+
+The app uses `vite-plugin-pwa` (Workbox) to generate a service worker that pre-caches all static assets. The Web App Manifest (`vite.config.ts` → `VitePWA`) enables "Add to Home Screen" / "Install" on supported browsers. The app works fully offline once cached.
 
 ### Routing
 
@@ -134,3 +142,11 @@ JSON export/import for full data backup and per-document backup. All backup obje
 
 ### Date handling
 Dates are stored as `YYYY-MM-DD` local dates, created with a manual `localDateString()` helper (not `toISOString().slice(0,10)`) to avoid UTC offset shifting the displayed day.
+
+## Test suite
+
+Tests use **Vitest 4** + **React Testing Library** + **jsdom**. Test files live in `__tests__/` subdirectories next to the code they test.
+
+### Node 26 compatibility notes
+
+Node 26 adds an experimental `localStorage` global (configurable getter, returns `undefined` without `--localstorage-file`). This shadows jsdom's own `localStorage` in the vm context. `src/test/setup.ts` unconditionally replaces `globalThis.localStorage` (and `sessionStorage`) with an in-memory mock to work around this. It also stubs `window.matchMedia`, which jsdom does not implement.

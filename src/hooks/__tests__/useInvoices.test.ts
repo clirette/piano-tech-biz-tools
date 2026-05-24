@@ -14,7 +14,7 @@ describe('useInvoices', () => {
     vi.setSystemTime(new Date(FROZEN_NOW));
   });
 
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => { vi.useRealTimers(); });
 
   it('starts with an empty invoices array', () => {
     const { result } = renderHook(() => useInvoices());

@@ -13,7 +13,7 @@ describe('useEstimates', () => {
     vi.setSystemTime(new Date(FROZEN_NOW));
   });
 
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => { vi.useRealTimers(); });
 
   it('starts with an empty estimates array', () => {
     const { result } = renderHook(() => useEstimates());

@@ -129,6 +129,21 @@ export function HomePage() {
         />
       </div>
 
+      {/* PWA / Install info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 flex gap-4 items-start">
+        <span className="text-2xl flex-shrink-0">📲</span>
+        <div>
+          <h3 className="font-semibold text-blue-900 mb-1">Works offline — installable on any device</h3>
+          <p className="text-sm text-blue-800">
+            Piano Tech Biz Tools is a{' '}
+            <strong>Progressive Web App (PWA)</strong>. Install it on your phone, tablet, or
+            desktop and use it fully offline — your data never leaves your device. In your
+            browser, look for <em>Add to Home Screen</em> or <em>Install App</em> to get
+            started.
+          </p>
+        </div>
+      </div>
+
       {/* Backup & Restore */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <h2 className="text-lg font-semibold text-slate-800 mb-1">Backup &amp; Restore</h2>
