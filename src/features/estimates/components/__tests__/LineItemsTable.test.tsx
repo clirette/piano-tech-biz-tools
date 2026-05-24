@@ -68,6 +68,7 @@ describe('LineItemsTable', () => {
     render(<LineItemsTable lineItems={[makeItem({ quantity: 3 })]} onChange={onChange} />);
     const qtyInput = screen.getByDisplayValue('3') as HTMLInputElement;
     fireEvent.change(qtyInput, { target: { value: '0' } });
+    fireEvent.blur(qtyInput);
     const lastItems = onChange.mock.calls[onChange.mock.calls.length - 1][0] as LineItem[];
     expect(lastItems[0].quantity).toBeGreaterThanOrEqual(1);
   });

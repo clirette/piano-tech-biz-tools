@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function useLocalStorage<T>(key: string, defaultValue: T) {
   const [value, setValue] = useState<T>(() => {
@@ -10,6 +10,11 @@ export function useLocalStorage<T>(key: string, defaultValue: T) {
     }
   });
 
+  // Always holds the latest committed value so setValueAndPersist can read it
+  // synchronously without relying on a potentially-stale closure.
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
   // Keep localStorage in sync whenever value changes (covers external updates)
   useEffect(() => {
     try {
@@ -19,18 +24,17 @@ export function useLocalStorage<T>(key: string, defaultValue: T) {
     }
   }, [key, value]);
 
-  // Wrap setter to also persist synchronously so navigations that happen in
-  // the same tick (before the effect flushes) see the updated value.
+  // Compute and persist the new value synchronously so that navigations
+  // triggered in the same event handler see the updated localStorage before
+  // the new route's component initialises its own state from storage.
   function setValueAndPersist(next: T | ((prev: T) => T)) {
-    setValue(prev => {
-      const resolved = typeof next === 'function' ? (next as (p: T) => T)(prev) : next;
-      try {
-        localStorage.setItem(key, JSON.stringify(resolved));
-      } catch {
-        // Storage may be full or unavailable
-      }
-      return resolved;
-    });
+    const resolved = typeof next === 'function' ? (next as (p: T) => T)(valueRef.current) : next;
+    try {
+      localStorage.setItem(key, JSON.stringify(resolved));
+    } catch {
+      // Storage may be full or unavailable
+    }
+    setValue(resolved);
   }
 
   return [value, setValueAndPersist] as const;

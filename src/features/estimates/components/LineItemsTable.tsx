@@ -49,12 +49,24 @@ export function LineItemsTable({ lineItems, onChange }: LineItemsTableProps) {
     () => Object.fromEntries(lineItems.map(item => [item.id, formatCurrency(item.unitPriceCents)])),
   );
 
-  // Sync localPrices when items are added or removed
+  // Controlled quantity string state — allows clearing the field mid-edit
+  const [localQuantities, setLocalQuantities] = useState<Record<string, string>>(
+    () => Object.fromEntries(lineItems.map(item => [item.id, String(item.quantity)])),
+  );
+
+  // Sync localPrices and localQuantities when items are added or removed
   useEffect(() => {
     setLocalPrices(prev => {
       const next: Record<string, string> = {};
       for (const item of lineItems) {
         next[item.id] = item.id in prev ? prev[item.id] : formatCurrency(item.unitPriceCents);
+      }
+      return next;
+    });
+    setLocalQuantities(prev => {
+      const next: Record<string, string> = {};
+      for (const item of lineItems) {
+        next[item.id] = item.id in prev ? prev[item.id] : String(item.quantity);
       }
       return next;
     });
@@ -89,6 +101,12 @@ export function LineItemsTable({ lineItems, onChange }: LineItemsTableProps) {
     const cents = parseToCents(rawValue) || 0;
     updateItem(id, { unitPriceCents: cents });
     setLocalPrices(prev => ({ ...prev, [id]: formatCurrency(cents) }));
+  }
+
+  function handleQuantityBlur(id: string, rawValue: string) {
+    const qty = Math.max(1, parseInt(rawValue, 10) || 1);
+    updateItem(id, { quantity: qty });
+    setLocalQuantities(prev => ({ ...prev, [id]: String(qty) }));
   }
 
   const cellInput = 'rounded border border-slate-200 px-2 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white';
@@ -170,9 +188,10 @@ export function LineItemsTable({ lineItems, onChange }: LineItemsTableProps) {
                       inputMode="numeric"
                       min={1}
                       className="w-16 rounded border border-slate-200 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
-                      value={item.quantity}
-                      onChange={e => updateItem(item.id, { quantity: Math.max(1, Number(e.target.value)) })}
-                    />
+                     value={localQuantities[item.id] ?? String(item.quantity)}
+                     onChange={e => setLocalQuantities(prev => ({ ...prev, [item.id]: e.target.value }))}
+                     onBlur={e => handleQuantityBlur(item.id, e.target.value)}
+                   />
                   </td>
                   <td className="py-2 pr-3">
                     <input
@@ -294,8 +313,9 @@ export function LineItemsTable({ lineItems, onChange }: LineItemsTableProps) {
                       inputMode="numeric"
                       min={1}
                       className={`w-16 ${cellInput}`}
-                      value={item.quantity}
-                      onChange={e => updateItem(item.id, { quantity: Math.max(1, Number(e.target.value)) })}
+                      value={localQuantities[item.id] ?? String(item.quantity)}
+                      onChange={e => setLocalQuantities(prev => ({ ...prev, [item.id]: e.target.value }))}
+                      onBlur={e => handleQuantityBlur(item.id, e.target.value)}
                     />
                   </div>
                   <div className="flex items-center gap-1">
