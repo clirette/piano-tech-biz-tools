@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Brand-blue background, app-icon shape -->
+  <rect width="32" height="32" rx="7" fill="#0d3ed6"/>
+
+  <!-- White keys: C (3–10), D (12–19), E (21–28)  — 1 px dark-blue gap between each pair -->
+  <rect x="3"  y="7" width="8" height="19" rx="2" fill="#ffffff"/>
+  <rect x="12" y="7" width="8" height="19" rx="2" fill="#ffffff"/>
+  <rect x="21" y="7" width="8" height="19" rx="2" fill="#ffffff"/>
+
+  <!-- Black keys: C# (9–13), D# (18–22) — drawn on top, overlap adjacent white keys by 2 px each side -->
+  <rect x="9"  y="7" width="5" height="12" rx="1.5" fill="#0a0e2e"/>
+  <rect x="18" y="7" width="5" height="12" rx="1.5" fill="#0a0e2e"/>
+</svg>
