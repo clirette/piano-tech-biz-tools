@@ -98,7 +98,7 @@ export function CompanySettingsPage() {
             label="Business Name"
             value={settings.name}
             onChange={e => handleChange('name', e.target.value)}
-            placeholder="Chase's Piano Service"
+            placeholder="My Piano Service"
           />
           <Input
             label="Slogan"
