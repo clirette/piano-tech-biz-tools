@@ -1,50 +1,45 @@
-# React + TypeScript + Vite
+# 🎹 Piano Tech Biz Tools
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A free, offline-friendly web app for piano technicians. Build itemized estimates, convert them to invoices, track payment status, and export professional PDFs — all without an account or a server.
 
-Currently, two official plugins are available:
+**[→ Use it at pianotechbiztools.com](https://pianotechbiztools.com)**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## Expanding the ESLint configuration
+- **Estimates** — Build line-item estimates with labor and parts, per-item notes, and a professional PDF export
+- **Invoices** — Convert estimates to invoices with one click; track draft / sent / paid / overdue status
+- **Company settings** — Add your logo, slogan, contact info, Google review link, and accepted payment methods; they appear automatically on all documents
+- **Backup & restore** — Export all your data as a JSON file and re-import it at any time; your data never leaves your browser
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## Running locally
 
-- Configure the top-level `parserOptions` property like this:
+**Requirements:** Node.js 18+
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+git clone https://github.com/clirette/piano-tech-biz-tools.git
+cd piano-tech-biz-tools
+npm install
+npm run dev        # http://localhost:5173
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+Other commands:
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+```bash
+npm run build      # Production build → dist/
+npm run preview    # Preview the production build locally
+npm run lint       # Run ESLint
 ```
+
+## Contributing
+
+Contributions are welcome! A few things to know before you start:
+
+- **Open an issue first** for anything non-trivial so we can agree on the approach before you spend time on it
+- **All changes go through a pull request** — direct pushes to `main` are not allowed
+- The app is intentionally **client-side only** with no backend; please keep it that way
+- All monetary values are stored as **integer cents** — use the `formatCurrency` / `parseToCents` utilities in `src/utils/currency.ts`, never do `/ 100` or `* 100` inline
+- See [`.github/copilot-instructions.md`](.github/copilot-instructions.md) for a full architecture overview and code conventions
+
+## License
+
+[MIT](LICENSE)
