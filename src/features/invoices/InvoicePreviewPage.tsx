@@ -57,9 +57,9 @@ export function InvoicePreviewPage() {
       </div>
 
       {/* Invoice document */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 max-w-3xl mx-auto" id="invoice-preview">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-8 max-w-3xl mx-auto" id="invoice-preview">
         {/* Company header */}
-        <div className="flex items-start justify-between mb-6 pb-6 border-b border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 pb-6 border-b border-slate-200 gap-3">
           <div className="flex items-center gap-4">
             {company.logoDataUrl && (
               <img
@@ -77,7 +77,7 @@ export function InvoicePreviewPage() {
               </div>
             )}
           </div>
-          <div className="text-right text-sm text-slate-500 space-y-0.5">
+          <div className="text-sm text-slate-500 space-y-0.5 sm:text-right break-words">
             {company.address && <p>{company.address}</p>}
             {company.phone && <p>{company.phone}</p>}
             {company.email && <p>{company.email}</p>}
@@ -86,12 +86,12 @@ export function InvoicePreviewPage() {
         </div>
 
         {/* Invoice title */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
           <div>
             <h2 className="text-3xl font-bold text-brand-600 tracking-wide">INVOICE</h2>
             <p className="text-slate-500 text-sm">#{invoiceNum}</p>
           </div>
-          <div className="text-right text-sm text-slate-600 space-y-1">
+          <div className="text-sm text-slate-600 space-y-1 sm:text-right">
             <p><span className="font-medium">Date:</span> {formatDate(invoice.date)}</p>
             {invoice.dueDate && (
               <p><span className="font-medium">Due:</span> {formatDate(invoice.dueDate)}</p>
@@ -101,7 +101,7 @@ export function InvoicePreviewPage() {
         </div>
 
         {/* Client + Piano info */}
-        <div className="grid grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
           <div>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Bill To</h3>
             <div className="text-sm text-slate-700 space-y-0.5">
@@ -125,7 +125,8 @@ export function InvoicePreviewPage() {
         </div>
 
         {/* Line items */}
-        <table className="w-full text-sm mb-2">
+        <div className="overflow-x-auto mb-2">
+        <table className="w-full text-sm min-w-[480px]">
           <thead>
             <tr className="bg-brand-600 text-white text-xs uppercase tracking-wide">
               <th className="text-left px-3 py-2 rounded-tl">Description</th>
@@ -159,10 +160,11 @@ export function InvoicePreviewPage() {
             ))}
           </tbody>
         </table>
+        </div>
 
         {/* Total */}
         <div className="flex justify-end mb-6">
-          <div className="border-t-2 border-brand-600 pt-2 min-w-48">
+          <div className="border-t-2 border-brand-600 pt-2 min-w-40 sm:min-w-48">
             <div className="flex justify-between items-center font-bold text-lg text-brand-700">
               <span>Total</span>
               <span>{formatCurrency(total)}</span>

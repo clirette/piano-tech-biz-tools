@@ -109,41 +109,39 @@ export function EstimateEditorPage() {
 
         {/* Status + totals + actions */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-slate-700">Status</label>
-              <select
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                value={estimate.status}
-                onChange={e => handleChange({ status: e.target.value as EstimateStatus })}
-              >
-                {STATUS_OPTIONS.map(s => (
-                  <option key={s} value={s}>
-                    {s.charAt(0).toUpperCase() + s.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="text-sm font-medium text-slate-700">Status</label>
+            <select
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              value={estimate.status}
+              onChange={e => handleChange({ status: e.target.value as EstimateStatus })}
+            >
+              {STATUS_OPTIONS.map(s => (
+                <option key={s} value={s}>
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </option>
+              ))}
+            </select>
+            <span className="sm:ml-auto text-xl font-bold text-brand-700">
+              Total: {formatCurrency(estimateTotal(estimate))}
+            </span>
+          </div>
 
-            <div className="flex items-center gap-4 flex-wrap">
-              <span className="text-xl font-bold text-brand-700">
-                Total: {formatCurrency(estimateTotal(estimate))}
-              </span>
-              <Button variant="secondary" onClick={() => exportEstimateBackup(estimate)}>
-                ⬇ Export
-              </Button>
-              <ImportButton label="⬆ Import" variant="secondary" size="sm" onImport={handleImportEstimate} />
-              <Button variant="secondary" onClick={handleConvertToInvoice}>
-                → Invoice
-              </Button>
-              <Button variant="secondary" onClick={() => navigate(`/estimates/${estimate.id}/preview`)}>
-                Preview / PDF
-              </Button>
-              <Button onClick={handleSave}>
-                Save
-              </Button>
-              {saved && <span className="text-sm text-green-600 font-medium">✓ Saved</span>}
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" size="sm" onClick={() => exportEstimateBackup(estimate)}>
+              ⬇ Export
+            </Button>
+            <ImportButton label="⬆ Import" variant="secondary" size="sm" onImport={handleImportEstimate} />
+            <Button variant="secondary" size="sm" onClick={handleConvertToInvoice}>
+              → Invoice
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => navigate(`/estimates/${estimate.id}/preview`)}>
+              Preview / PDF
+            </Button>
+            <Button onClick={handleSave}>
+              Save
+            </Button>
+            {saved && <span className="text-sm text-green-600 font-medium self-center">✓ Saved</span>}
           </div>
           {importMsg && (
             <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-1.5">

@@ -34,7 +34,7 @@ export function EstimateCard({ estimate, onDelete }: EstimateCardProps) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center justify-between gap-4 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center gap-3 hover:shadow-md transition-shadow">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-1">
           <h3 className="font-semibold text-slate-800 truncate">
@@ -50,8 +50,8 @@ export function EstimateCard({ estimate, onDelete }: EstimateCardProps) {
         </p>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-        <span className="text-lg font-bold text-brand-700">{formatCurrency(total)}</span>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-lg font-bold text-brand-700 mr-1">{formatCurrency(total)}</span>
         <Button size="sm" variant="secondary" onClick={() => navigate(`/estimates/${estimate.id}`)}>
           Edit
         </Button>

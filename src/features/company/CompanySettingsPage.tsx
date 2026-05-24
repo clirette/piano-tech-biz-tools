@@ -106,7 +106,7 @@ export function CompanySettingsPage() {
             onChange={e => handleChange('slogan', e.target.value)}
             placeholder="Bringing pianos to life"
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Phone"
               type="tel"
