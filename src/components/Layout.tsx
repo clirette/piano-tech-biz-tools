@@ -13,7 +13,8 @@ export function Layout() {
       <header className="bg-brand-600 shadow-md no-print">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link to="/" className="text-white font-bold text-lg tracking-tight hover:text-brand-100 transition-colors">
-            🎹 Piano Tech Biz Tools
+            <span className="hidden sm:inline">🎹 Piano Tech Biz Tools</span>
+            <span className="sm:hidden">🎹 PTBT</span>
           </Link>
           <nav className="flex items-center gap-1">
             <NavLink to="/estimates" className={navLink}>
