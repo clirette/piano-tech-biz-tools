@@ -94,7 +94,8 @@ export function EstimatePreviewPage() {
         {/* Client + Piano info */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
           <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Bill To</h3>
+            {/* Spacer keeps the client block aligned with the Piano heading */}
+            <div aria-hidden="true" className="hidden sm:block text-xs mb-2">&nbsp;</div>
             <div className="text-sm text-slate-700 space-y-0.5">
               {estimate.clientName && <p className="font-semibold">{estimate.clientName}</p>}
               {estimate.clientEmail && <p>{estimate.clientEmail}</p>}

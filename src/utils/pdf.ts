@@ -1,8 +1,13 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { Estimate, Invoice, CompanySettings } from '../types';
+import autoTable, { CellHookData } from 'jspdf-autotable';
+import { Estimate, Invoice, CompanySettings, LineItem } from '../types';
 import { formatCurrency } from './currency';
 import { lineItemTotal, estimateTotal } from './calculations';
+
+const LINE_ITEM_FONT_SIZE = 10;
+const LINE_ITEM_CELL_PADDING = 6;
+/** Fixed widths for every column after Description, which takes the remainder */
+const LINE_ITEM_FIXED_WIDTHS = { type: 55, qty: 35, hours: 45, unitPrice: 75, total: 75 };
 
 export function generateEstimatePdf(estimate: Estimate, company: CompanySettings): void {
   const doc = new jsPDF({ unit: 'pt', format: 'letter' });
@@ -40,12 +45,10 @@ export function generateEstimatePdf(estimate: Estimate, company: CompanySettings
 
   // ── Client + piano info ─────────────────────────────────────────────────────
   doc.setFontSize(11).setFont('helvetica', 'bold').setTextColor(30, 30, 30);
-  doc.text('Bill To', margin, y);
   const pianoX = pageWidth / 2;
   doc.text('Piano', pianoX, y);
   y += 4;
   doc.setDrawColor(100, 120, 200);
-  doc.line(margin, y, margin + 130, y);
   doc.line(pianoX, y, pianoX + 130, y);
   y += 14;
 
@@ -70,14 +73,8 @@ export function generateEstimatePdf(estimate: Estimate, company: CompanySettings
   y = Math.max(y, pianoY) + 16;
 
   // ── Line items table ────────────────────────────────────────────────────────
-  const rows = estimate.lineItems.map(item => [
-    item.lineNotes ? `${item.description}\n${item.lineNotes}` : item.description,
-    item.type === 'labor' ? 'Labor' : 'Parts',
-    item.quantity.toString(),
-    item.hours != null ? item.hours.toString() : '—',
-    formatCurrency(item.unitPriceCents),
-    formatCurrency(lineItemTotal(item)),
-  ]);
+  const descWidth = descriptionColumnWidth(pageWidth, margin);
+  const { rows, boldLineCounts } = buildLineItemRows(doc, estimate.lineItems, descWidth);
 
   autoTable(doc, {
     startY: y,
@@ -87,14 +84,15 @@ export function generateEstimatePdf(estimate: Estimate, company: CompanySettings
     headStyles: { fillColor: [20, 60, 160], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245, 247, 255] },
     columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { cellWidth: 55, halign: 'center' },
-      2: { cellWidth: 35, halign: 'center' },
-      3: { cellWidth: 45, halign: 'center' },
-      4: { cellWidth: 75, halign: 'right' },
-      5: { cellWidth: 75, halign: 'right' },
+      0: { cellWidth: descWidth },
+      1: { cellWidth: LINE_ITEM_FIXED_WIDTHS.type, halign: 'center' },
+      2: { cellWidth: LINE_ITEM_FIXED_WIDTHS.qty, halign: 'center' },
+      3: { cellWidth: LINE_ITEM_FIXED_WIDTHS.hours, halign: 'center' },
+      4: { cellWidth: LINE_ITEM_FIXED_WIDTHS.unitPrice, halign: 'right' },
+      5: { cellWidth: LINE_ITEM_FIXED_WIDTHS.total, halign: 'right' },
     },
-    styles: { fontSize: 10, cellPadding: 6 },
+    styles: { fontSize: LINE_ITEM_FONT_SIZE, cellPadding: LINE_ITEM_CELL_PADDING },
+    ...descriptionCellHooks(doc, boldLineCounts),
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -291,6 +289,76 @@ export function generateInvoicePdf(invoice: Invoice, company: CompanySettings): 
 
   const clientSlug = invoice.clientName.replace(/\s+/g, '_') || 'invoice';
   doc.save(`invoice_${clientSlug}_${invoice.date}.pdf`);
+}
+
+function descriptionColumnWidth(pageWidth: number, margin: number): number {
+  const fixed = Object.values(LINE_ITEM_FIXED_WIDTHS).reduce((sum, w) => sum + w, 0);
+  return pageWidth - margin * 2 - fixed;
+}
+
+/**
+ * Builds the line item rows, pre-wrapping the description column so the item
+ * description can be drawn bold while its line notes stay in the regular weight.
+ * Also returns how many wrapped lines of each cell belong to the description.
+ */
+function buildLineItemRows(doc: jsPDF, items: LineItem[], descWidth: number) {
+  const textWidth = descWidth - LINE_ITEM_CELL_PADDING * 2;
+  const boldLineCounts: number[] = [];
+  doc.setFontSize(LINE_ITEM_FONT_SIZE);
+
+  const rows = items.map(item => {
+    // Wrap each part in the font it will actually be drawn in, so autoTable has
+    // no wrapping left to do and the wider bold lines cannot overflow the cell.
+    doc.setFont('helvetica', 'bold');
+    const descLines: string[] = doc.splitTextToSize(item.description, textWidth);
+    doc.setFont('helvetica', 'normal');
+    const noteLines: string[] = item.lineNotes
+      ? doc.splitTextToSize(item.lineNotes, textWidth)
+      : [];
+    boldLineCounts.push(descLines.length);
+
+    return [
+      [...descLines, ...noteLines].join('\n'),
+      item.type === 'labor' ? 'Labor' : 'Parts',
+      item.quantity.toString(),
+      item.hours != null ? item.hours.toString() : '—',
+      formatCurrency(item.unitPriceCents),
+      formatCurrency(lineItemTotal(item)),
+    ];
+  });
+
+  return { rows, boldLineCounts };
+}
+
+/**
+ * autoTable applies a single font style per cell, so the description cell is
+ * drawn by hand: blanked before the default render, then re-drawn line by line
+ * with the description bold and the line notes in the regular weight.
+ */
+function descriptionCellHooks(doc: jsPDF, boldLineCounts: number[]) {
+  let lines: string[] = [];
+
+  return {
+    willDrawCell: (data: CellHookData) => {
+      if (data.section !== 'body' || data.column.index !== 0) return;
+      lines = data.cell.text;
+      data.cell.text = [];
+    },
+    didDrawCell: (data: CellHookData) => {
+      if (data.section !== 'body' || data.column.index !== 0) return;
+      const boldCount = boldLineCounts[data.row.index] ?? lines.length;
+      const fontSize = data.cell.styles.fontSize;
+      const x = data.cell.x + data.cell.padding('left');
+      // Mirrors autoTable's own top-aligned baseline placement
+      let lineY = data.cell.y + data.cell.padding('top') + fontSize * 0.85;
+      lines.forEach((line, i) => {
+        doc.setFont('helvetica', i < boldCount ? 'bold' : 'normal');
+        doc.text(line, x, lineY);
+        lineY += fontSize * doc.getLineHeightFactor();
+      });
+      doc.setFont('helvetica', 'normal');
+    },
+  };
 }
 
 function addCompanyText(  doc: jsPDF,
