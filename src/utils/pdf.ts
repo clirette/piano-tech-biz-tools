@@ -198,14 +198,8 @@ export function generateInvoicePdf(invoice: Invoice, company: CompanySettings): 
   y = Math.max(y, pianoY) + 16;
 
   // Line items table
-  const rows = invoice.lineItems.map(item => [
-    item.lineNotes ? `${item.description}\n${item.lineNotes}` : item.description,
-    item.type === 'labor' ? 'Labor' : 'Parts',
-    item.quantity.toString(),
-    item.hours != null ? item.hours.toString() : '—',
-    formatCurrency(item.unitPriceCents),
-    formatCurrency(lineItemTotal(item)),
-  ]);
+  const descWidth = descriptionColumnWidth(pageWidth, margin);
+  const { rows, boldLineCounts } = buildLineItemRows(doc, invoice.lineItems, descWidth);
 
   autoTable(doc, {
     startY: y,
@@ -215,14 +209,15 @@ export function generateInvoicePdf(invoice: Invoice, company: CompanySettings): 
     headStyles: { fillColor: [20, 60, 160], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245, 247, 255] },
     columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { cellWidth: 55, halign: 'center' },
-      2: { cellWidth: 35, halign: 'center' },
-      3: { cellWidth: 45, halign: 'center' },
-      4: { cellWidth: 75, halign: 'right' },
-      5: { cellWidth: 75, halign: 'right' },
+      0: { cellWidth: descWidth },
+      1: { cellWidth: LINE_ITEM_FIXED_WIDTHS.type, halign: 'center' },
+      2: { cellWidth: LINE_ITEM_FIXED_WIDTHS.qty, halign: 'center' },
+      3: { cellWidth: LINE_ITEM_FIXED_WIDTHS.hours, halign: 'center' },
+      4: { cellWidth: LINE_ITEM_FIXED_WIDTHS.unitPrice, halign: 'right' },
+      5: { cellWidth: LINE_ITEM_FIXED_WIDTHS.total, halign: 'right' },
     },
-    styles: { fontSize: 10, cellPadding: 6 },
+    styles: { fontSize: LINE_ITEM_FONT_SIZE, cellPadding: LINE_ITEM_CELL_PADDING },
+    ...descriptionCellHooks(doc, boldLineCounts),
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
