@@ -248,7 +248,7 @@ export function LineItemsTable({ lineItems, onChange }: LineItemsTableProps) {
                   <tr className="bg-slate-50">
                     <td colSpan={7} className="px-3 pb-3 pt-1">
                       <textarea
-                        className="w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700 placeholder-slate-400 resize-none focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        className="w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700 placeholder-slate-400 resize-y min-h-[3.5rem] focus:outline-none focus:ring-1 focus:ring-brand-500"
                         rows={2}
                         placeholder="Add a note for this line item…"
                         value={item.lineNotes ?? ''}
@@ -357,7 +357,7 @@ export function LineItemsTable({ lineItems, onChange }: LineItemsTableProps) {
                 {/* Line notes */}
                 {expandedNotes.has(item.id) && (
                   <textarea
-                    className="w-full rounded border border-slate-200 px-2 py-2 text-sm text-slate-700 placeholder-slate-400 resize-none focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    className="w-full rounded border border-slate-200 px-2 py-2 text-sm text-slate-700 placeholder-slate-400 resize-y min-h-[3.5rem] focus:outline-none focus:ring-1 focus:ring-brand-500"
                     rows={2}
                     placeholder="Add a note for this line item…"
                     value={item.lineNotes ?? ''}
