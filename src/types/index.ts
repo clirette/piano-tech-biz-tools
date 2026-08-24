@@ -26,6 +26,8 @@ export interface Estimate {
   pianoSerial: string;
   pianoLocation: string;
   date: string; // ISO date string YYYY-MM-DD
+  /** Optional: days the estimate stays valid after `date`. Omitted/0 = no expiration */
+  validDays?: number;
   lineItems: LineItem[];
   notes: string;
   status: EstimateStatus;

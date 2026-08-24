@@ -3,6 +3,7 @@ import autoTable, { CellHookData } from 'jspdf-autotable';
 import { Estimate, Invoice, CompanySettings, LineItem } from '../types';
 import { formatCurrency } from './currency';
 import { lineItemTotal, estimateTotal } from './calculations';
+import { expirationDate, validityStatement } from './expiration';
 
 const LINE_ITEM_FONT_SIZE = 10;
 const LINE_ITEM_CELL_PADDING = 6;
@@ -41,7 +42,11 @@ export function generateEstimatePdf(estimate: Estimate, company: CompanySettings
   const estimateNum = estimate.estimateNumber || estimate.id.slice(0, 8).toUpperCase();
   doc.text(`#${estimateNum}`, margin, y + 16);
   doc.text(`Date: ${formatDate(estimate.date)}`, margin, y + 30);
-  y += 50;
+  const expiresOn = expirationDate(estimate.date, estimate.validDays);
+  if (expiresOn) {
+    doc.text(`Valid Until: ${formatDate(expiresOn)}`, margin, y + 44);
+  }
+  y += expiresOn ? 64 : 50;
 
   // ── Client + piano info ─────────────────────────────────────────────────────
   doc.setFontSize(11).setFont('helvetica', 'bold').setTextColor(30, 30, 30);
@@ -113,6 +118,18 @@ export function generateEstimatePdf(estimate: Estimate, company: CompanySettings
     const lines = doc.splitTextToSize(estimate.notes, pageWidth - margin * 2);
     doc.text(lines, margin, y);
     y += lines.length * 14 + 16;
+  }
+
+  // ── Validity ────────────────────────────────────────────────────────────────
+  if (expiresOn && estimate.validDays != null) {
+    doc.setFontSize(10).setFont('helvetica', 'italic').setTextColor(110, 110, 110);
+    const lines = doc.splitTextToSize(
+      validityStatement(estimate.validDays, formatDate(expiresOn)),
+      pageWidth - margin * 2,
+    );
+    doc.text(lines, margin, y);
+    doc.setFont('helvetica', 'normal');
+    y += lines.length * 14 + 10;
   }
 
   // ── Google review prompt ────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { Badge } from '../../components/Badge';
 import { formatCurrency } from '../../utils/currency';
 import { lineItemTotal, estimateTotal } from '../../utils/calculations';
 import { generateEstimatePdf } from '../../utils/pdf';
+import { expirationDate, validityStatement } from '../../utils/expiration';
 
 export function EstimatePreviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +31,8 @@ export function EstimatePreviewPage() {
     const [year, month, day] = iso.split('-');
     return `${month}/${day}/${year}`;
   }
+
+  const expiresOn = expirationDate(estimate.date, estimate.validDays);
 
   return (
     <div>
@@ -87,6 +90,9 @@ export function EstimatePreviewPage() {
           </div>
           <div className="text-sm text-slate-600 space-y-1 sm:text-right">
             <p><span className="font-medium">Date:</span> {formatDate(estimate.date)}</p>
+            {expiresOn && (
+              <p><span className="font-medium">Valid Until:</span> {formatDate(expiresOn)}</p>
+            )}
             <Badge status={estimate.status} />
           </div>
         </div>
@@ -170,6 +176,13 @@ export function EstimatePreviewPage() {
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Notes</h3>
             <p className="text-sm text-slate-700 whitespace-pre-wrap">{estimate.notes}</p>
           </div>
+        )}
+
+        {/* Validity */}
+        {expiresOn && estimate.validDays != null && (
+          <p className="mb-6 text-sm text-slate-500 italic">
+            {validityStatement(estimate.validDays, formatDate(expiresOn))}
+          </p>
         )}
 
         {/* Google review — hidden when printing */}

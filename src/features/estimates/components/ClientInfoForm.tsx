@@ -1,6 +1,7 @@
 import { Estimate } from '../../../types';
 import { Input } from '../../../components/Input';
 import { formatPhone } from '../../../utils/format';
+import { VALID_DAYS_OPTIONS } from '../../../utils/expiration';
 
 interface ClientInfoFormProps {
   estimate: Estimate;
@@ -30,6 +31,22 @@ export function ClientInfoForm({ estimate, onChange }: ClientInfoFormProps) {
           value={estimate.date}
           onChange={e => onChange({ date: e.target.value })}
         />
+        <div className="flex flex-col gap-1">
+          <label htmlFor="valid-for" className="text-sm font-medium text-slate-700">
+            Valid For
+          </label>
+          <select
+            id="valid-for"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            value={estimate.validDays ?? 0}
+            onChange={e => onChange({ validDays: Number(e.target.value) })}
+          >
+            {VALID_DAYS_OPTIONS.map(opt => (
+              <option key={opt.days} value={opt.days}>{opt.label}</option>
+            ))}
+          </select>
+          <p className="text-xs text-slate-500">Optional — shown on the estimate as an expiration date.</p>
+        </div>
         <Input
           label="Email"
           type="email"
