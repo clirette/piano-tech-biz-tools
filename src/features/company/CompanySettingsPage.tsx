@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import { useCompanySettings } from '../../hooks/useCompanySettings';
 import { Button } from '../../components/Button';
+import { QrCode } from '../../components/QrCode';
+import { qrMatrix } from '../../utils/qr';
 import { Input } from '../../components/Input';
 import { ImportButton } from '../../components/ImportButton';
 import { formatPhone } from '../../utils/format';
@@ -202,6 +204,37 @@ export function CompanySettingsPage() {
                   onChange={e => handlePayment('onlineCardUrl', e.target.value)}
                   placeholder="https://…"
                 />
+                <div className="sm:col-span-2">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded accent-brand-600 mt-0.5"
+                      checked={payment.showPaymentQr !== false}
+                      onChange={e => handlePayment('showPaymentQr', e.target.checked)}
+                    />
+                    <span className="text-sm text-slate-700">
+                      Show a scannable QR code on invoices
+                      <span className="block text-xs text-slate-400">
+                        Clients can scan to open your payment link instead of typing it.
+                      </span>
+                    </span>
+                  </label>
+                  {payment.showPaymentQr !== false && payment.onlineCardUrl && (
+                    <div className="mt-3 ml-7">
+                      {qrMatrix(payment.onlineCardUrl) ? (
+                        <div className="inline-block text-center">
+                          <QrCode value={payment.onlineCardUrl} size={96} label="Payment QR preview" />
+                          <p className="text-[10px] text-slate-400 mt-1">Preview</p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                          This link is too long to fit in a QR code. Invoices will show it as a
+                          text link instead.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

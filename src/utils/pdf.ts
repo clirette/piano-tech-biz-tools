@@ -4,11 +4,16 @@ import { Estimate, Invoice, CompanySettings, LineItem } from '../types';
 import { formatCurrency } from './currency';
 import { lineItemTotal, estimateTotal } from './calculations';
 import { expirationDate, validityStatement } from './expiration';
+import { qrMatrix, shouldShowPaymentQr } from './qr';
 
 const LINE_ITEM_FONT_SIZE = 10;
 const LINE_ITEM_CELL_PADDING = 6;
 /** Fixed widths for every column after Description, which takes the remainder */
 const LINE_ITEM_FIXED_WIDTHS = { type: 55, qty: 35, hours: 45, unitPrice: 75, total: 75 };
+/** Printed edge length of the scan-to-pay QR, in points. */
+const PAYMENT_QR_SIZE = 72;
+/** Modules of white margin the QR spec requires around the symbol. */
+const QR_QUIET_ZONE = 4;
 
 export function generateEstimatePdf(estimate: Estimate, company: CompanySettings): void {
   const doc = new jsPDF({ unit: 'pt', format: 'letter' });
@@ -266,6 +271,7 @@ export function generateInvoicePdf(invoice: Invoice, company: CompanySettings): 
     doc.setDrawColor(200, 200, 200);
     doc.line(margin, y, pageWidth - margin, y);
     y += 14;
+    const blockTop = y;
     doc.setFontSize(10).setFont('helvetica', 'bold').setTextColor(30, 30, 30);
     doc.text('Payment', margin, y);
     y += 14;
@@ -282,6 +288,24 @@ export function generateInvoicePdf(invoice: Invoice, company: CompanySettings): 
       doc.textWithLink(linkLabel, margin, y, { url: payment.onlineCardUrl });
       y += 14;
     }
+
+    // The scan-to-pay QR sits to the RIGHT of the payment text, aligned with the
+    // top of the block. This page has no page-break handling, so stacking the QR
+    // below the text could push the review line off the bottom of a long invoice;
+    // beside it, the block usually costs no extra height at all.
+    if (shouldShowPaymentQr(payment)) {
+      const matrix = qrMatrix(payment.onlineCardUrl);
+      if (matrix) {
+        const qrX = pageWidth - margin - PAYMENT_QR_SIZE;
+        drawQrMatrix(doc, matrix, qrX, blockTop, PAYMENT_QR_SIZE);
+        const captionY = blockTop + PAYMENT_QR_SIZE + 9;
+        doc.setFontSize(7).setFont('helvetica', 'normal').setTextColor(140, 140, 140);
+        doc.text('Scan to pay', qrX + PAYMENT_QR_SIZE / 2, captionY, { align: 'center' });
+        doc.setFontSize(10);
+        y = Math.max(y, captionY + 5);
+      }
+    }
+
     y += 6;
   }
 
@@ -301,6 +325,46 @@ export function generateInvoicePdf(invoice: Invoice, company: CompanySettings): 
 
   const clientSlug = invoice.clientName.replace(/\s+/g, '_') || 'invoice';
   doc.save(`invoice_${clientSlug}_${invoice.date}.pdf`);
+}
+
+/**
+ * Paints a QR module matrix as filled rects, merging each row's consecutive dark
+ * modules into a single rect. Mirrors `components/QrCode.tsx` so the PDF and the
+ * on-screen preview draw the same symbol from the same `qrMatrix` output.
+ */
+function drawQrMatrix(
+  doc: jsPDF,
+  matrix: boolean[][],
+  x: number,
+  y: number,
+  size: number,
+): void {
+  const count = matrix.length;
+  const extent = count + QR_QUIET_ZONE * 2;
+  const module = size / extent;
+
+  // White ground, so the quiet zone reads as quiet even over a tinted page.
+  doc.setFillColor(255, 255, 255);
+  doc.rect(x, y, size, size, 'F');
+
+  doc.setFillColor(0, 0, 0);
+  matrix.forEach((row, r) => {
+    let runStart = -1;
+    for (let c = 0; c <= count; c++) {
+      const dark = c < count && row[c];
+      if (dark && runStart === -1) runStart = c;
+      if (!dark && runStart !== -1) {
+        doc.rect(
+          x + (runStart + QR_QUIET_ZONE) * module,
+          y + (r + QR_QUIET_ZONE) * module,
+          (c - runStart) * module,
+          module,
+          'F',
+        );
+        runStart = -1;
+      }
+    }
+  });
 }
 
 function descriptionColumnWidth(pageWidth: number, margin: number): number {

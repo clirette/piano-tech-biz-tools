@@ -45,6 +45,12 @@ export interface PaymentSettings {
   onlineCardName: string;
   /** Payment link shown on invoice */
   onlineCardUrl: string;
+  /**
+   * Show a scannable QR code for the payment link on the invoice.
+   * Optional so settings stored by older versions still load; the call sites
+   * treat `undefined` as true.
+   */
+  showPaymentQr?: boolean;
 }
 
 export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
@@ -54,6 +60,7 @@ export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
   acceptOnlineCard: false,
   onlineCardName: '',
   onlineCardUrl: '',
+  showPaymentQr: true,
 };
 
 export interface CompanySettings {

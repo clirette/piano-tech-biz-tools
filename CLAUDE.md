@@ -49,7 +49,9 @@ Each document is rendered twice, by unrelated code:
 1. `features/<area>/<X>PreviewPage.tsx` — JSX for screen and print
 2. `utils/pdf.ts` — jsPDF drawing calls for the PDF export
 
-**Any field added to a document must be added to both**, or it will appear on screen and silently vanish from the exported PDF. The same applies to conditional sections (e.g. the Google review prompt, which requires `googleReviewUrl` non-empty *and* the matching `showGoogleReviewOn*` flag in both places).
+**Any field added to a document must be added to both**, or it will appear on screen and silently vanish from the exported PDF. The same applies to conditional sections — the Google review prompt (needs `googleReviewUrl` non-empty *and* the matching `showGoogleReviewOn*` flag in both places), and the scan-to-pay QR on invoices.
+
+The QR is the worked example of how to keep the two renderers honest: `utils/qr.ts` owns both the gate (`shouldShowPaymentQr`) and the module matrix (`qrMatrix`), so neither the condition nor the bitmap can drift. `components/QrCode.tsx` paints that matrix as SVG rects for the preview; `drawQrMatrix` in `pdf.ts` paints the same matrix as jsPDF rects. `src/utils/__tests__/pdf.test.ts` wraps the jsPDF constructor to count drawn rects, which is what catches the section going missing from the export.
 
 `pdf.ts` does manual layout with a `y` cursor in points — every conditional block must advance `y` by what it drew, including per-line advances for wrapped text (`doc.splitTextToSize`). The line-item description cell is hand-drawn via autoTable's `willDrawCell`/`didDrawCell` hooks so the description can be bold while its notes stay regular; text is pre-wrapped in the font it will be drawn in, because autoTable would otherwise rewrap bold text at normal-weight widths and overflow the cell.
 

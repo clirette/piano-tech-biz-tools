@@ -8,6 +8,8 @@ import { Badge } from '../../components/Badge';
 import { formatCurrency } from '../../utils/currency';
 import { lineItemTotal, estimateTotal } from '../../utils/calculations';
 import { generateInvoicePdf } from '../../utils/pdf';
+import { QrCode } from '../../components/QrCode';
+import { shouldShowPaymentQr } from '../../utils/qr';
 
 export function InvoicePreviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +38,8 @@ export function InvoicePreviewPage() {
   if (payment?.acceptCash) paymentMethods.push('Cash');
   if (payment?.acceptCheck) paymentMethods.push('Check');
   if (payment?.acceptOnlineCard) paymentMethods.push('Credit Card');
+
+  const showPaymentQr = shouldShowPaymentQr(payment);
 
   return (
     <div>
@@ -184,26 +188,36 @@ export function InvoicePreviewPage() {
         {paymentMethods.length > 0 && (
           <div className="border-t border-slate-200 pt-4 mb-4">
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Payment</h3>
-            <p className="text-sm text-slate-600 mb-1">
-              <span className="font-medium">Accepted:</span> {paymentMethods.join(', ')}
-            </p>
-            {payment.acceptCheck && payment.checkPayableTo && (
-              <p className="text-sm text-slate-600">
-                Make check payable to: <span className="font-semibold">{payment.checkPayableTo}</span>
-              </p>
-            )}
-            {payment.acceptOnlineCard && payment.onlineCardUrl && (
-              <p className="text-sm mt-1">
-                <a
-                  href={payment.onlineCardUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-brand-600 font-semibold hover:underline"
-                >
-                  {payment.onlineCardName ? `Pay by Credit Card via ${payment.onlineCardName}` : 'Pay by Credit Card'} →
-                </a>
-              </p>
-            )}
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm text-slate-600 mb-1">
+                  <span className="font-medium">Accepted:</span> {paymentMethods.join(', ')}
+                </p>
+                {payment.acceptCheck && payment.checkPayableTo && (
+                  <p className="text-sm text-slate-600">
+                    Make check payable to: <span className="font-semibold">{payment.checkPayableTo}</span>
+                  </p>
+                )}
+                {payment.acceptOnlineCard && payment.onlineCardUrl && (
+                  <p className="text-sm mt-1">
+                    <a
+                      href={payment.onlineCardUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-brand-600 font-semibold hover:underline"
+                    >
+                      {payment.onlineCardName ? `Pay by Credit Card via ${payment.onlineCardName}` : 'Pay by Credit Card'} →
+                    </a>
+                  </p>
+                )}
+              </div>
+              {showPaymentQr && (
+                <div className="flex-shrink-0 text-center">
+                  <QrCode value={payment.onlineCardUrl} size={92} label="Scan to pay" />
+                  <p className="text-[10px] text-slate-400 mt-1">Scan to pay</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
