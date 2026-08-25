@@ -48,6 +48,7 @@ Uses `HashRouter` (not `BrowserRouter`) so the app works from `file://` and stat
 /invoices             → InvoicesPage
 /invoices/:id         → InvoiceEditorPage
 /invoices/:id/preview → InvoicePreviewPage
+/tools                → ToolsPage
 /settings             → CompanySettingsPage
 ```
 
@@ -106,6 +107,8 @@ All keys are namespaced under `piano-estimate:`:
 | `piano-estimate:estimates` | `Estimate[]` |
 | `piano-estimate:invoices` | `Invoice[]` |
 | `piano-estimate:lastBackupAt` | ISO datetime string |
+
+The bench tools under `/tools` deliberately persist nothing — their inputs are scratch state, so they add no key and stay out of the backup envelope.
 
 ## Key Conventions
 

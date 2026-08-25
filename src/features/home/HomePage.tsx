@@ -105,7 +105,7 @@ export function HomePage() {
       </div>
 
       {/* Feature cards */}
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <FeatureCard
           emoji="📋"
           title="Estimates"
@@ -119,6 +119,13 @@ export function HomePage() {
           description="Turn estimates into invoices with one click. Set due dates, track payment status (draft, sent, paid, overdue), and display accepted payment methods on the invoice."
           action="Go to Invoices"
           onClick={() => navigate('/invoices')}
+        />
+        <FeatureCard
+          emoji="🔧"
+          title="Bench Tools"
+          description="Piano-technical calculators for work at the instrument — string tension, the wire gauge chart, cents and frequency conversion, and equal-tempered beat rates. Runs entirely on your device."
+          action="Open Tools"
+          onClick={() => navigate('/tools')}
         />
         <FeatureCard
           emoji="⚙️"
