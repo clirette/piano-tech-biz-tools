@@ -113,22 +113,29 @@ export function LineItemsTable({ lineItems, onChange }: LineItemsTableProps) {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
+      {/*
+        The Quick Add panel anchors to this row, not to the button. Anchoring it
+        to the button put its right edge mid-screen on mobile, so a fixed-width
+        panel ran off the left of the viewport and hid the service names.
+      */}
+      <div className="relative flex items-center justify-between flex-wrap gap-2">
         <h2 className="font-semibold text-slate-700">Services &amp; Parts</h2>
         <div className="flex gap-2">
-          <div className="relative">
+          {/* Positioned from sm up, so the panel anchors to this button on
+              desktop and to the header row on mobile. */}
+          <div className="sm:relative">
             <Button variant="secondary" size="sm" onClick={() => setShowPresets(p => !p)}>
               ＋ Quick Add
             </Button>
             {showPresets && (
-              <div className="absolute right-0 top-full mt-1 z-10 bg-white border border-slate-200 rounded-xl shadow-lg w-72 max-w-[calc(100vw-2rem)] py-1">
+              <div className="absolute top-full inset-x-0 sm:inset-x-auto sm:right-0 sm:w-72 mt-1 z-10 bg-white border border-slate-200 rounded-xl shadow-lg py-1 max-h-[60vh] overflow-y-auto">
                 {PRESETS.map(preset => (
                   <button
                     key={preset.description}
                     className="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 flex justify-between items-center gap-2"
                     onClick={() => addPreset(preset)}
                   >
-                    <span>{preset.description}</span>
+                    <span className="min-w-0 truncate">{preset.description}</span>
                     <span className="text-slate-500 text-xs shrink-0">{formatCurrency(preset.unitPriceCents)}</span>
                   </button>
                 ))}
