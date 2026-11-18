@@ -39,6 +39,8 @@ export function EstimateEditorPage() {
       clientName: estimate.clientName,
       clientEmail: estimate.clientEmail,
       clientPhone: estimate.clientPhone,
+      clientType: estimate.clientType,
+      clientContact: estimate.clientContact,
       pianoMake: estimate.pianoMake,
       pianoModel: estimate.pianoModel,
       pianoSerial: estimate.pianoSerial,

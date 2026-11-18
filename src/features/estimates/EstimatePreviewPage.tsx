@@ -9,6 +9,7 @@ import { formatCurrency } from '../../utils/currency';
 import { lineItemTotal, estimateTotal } from '../../utils/calculations';
 import { generateEstimatePdf } from '../../utils/pdf';
 import { expirationDate, validityStatement } from '../../utils/expiration';
+import { clientDetailLines } from '../../utils/client';
 
 export function EstimatePreviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -104,8 +105,7 @@ export function EstimatePreviewPage() {
             <div aria-hidden="true" className="hidden sm:block text-xs mb-2">&nbsp;</div>
             <div className="text-sm text-slate-700 space-y-0.5">
               {estimate.clientName && <p className="font-semibold">{estimate.clientName}</p>}
-              {estimate.clientEmail && <p>{estimate.clientEmail}</p>}
-              {estimate.clientPhone && <p>{estimate.clientPhone}</p>}
+              {clientDetailLines(estimate).map((line, i) => <p key={i}>{line}</p>)}
             </div>
           </div>
           <div>

@@ -53,6 +53,28 @@ describe('useInvoices', () => {
     expect(created.dueDate).toBe(FROZEN_DUE);
   });
 
+  it('createInvoiceFromEstimate carries over organization details', () => {
+    const { result } = renderHook(() => useInvoices());
+    let created!: Invoice;
+    act(() => {
+      created = result.current.createInvoiceFromEstimate({
+        clientName: 'Riverside Country Club',
+        clientEmail: '',
+        clientPhone: '',
+        clientType: 'organization',
+        clientContact: 'Dana Ruiz',
+        pianoMake: '',
+        pianoModel: '',
+        pianoSerial: '',
+        pianoLocation: '',
+        lineItems: [],
+        notes: '',
+      });
+    });
+    expect(created.clientType).toBe('organization');
+    expect(created.clientContact).toBe('Dana Ruiz');
+  });
+
   it('createInvoiceFromEstimate copies line items', () => {
     const { result } = renderHook(() => useInvoices());
     const lineItems: LineItem[] = [

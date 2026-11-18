@@ -1,6 +1,8 @@
 export type EstimateStatus = 'draft' | 'sent' | 'accepted' | 'declined';
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue';
 export type LineItemType = 'labor' | 'parts';
+/** Who a document is made out to. Absent on documents saved by older versions = 'individual'. */
+export type ClientType = 'individual' | 'organization';
 
 export interface LineItem {
   id: string;
@@ -21,6 +23,10 @@ export interface Estimate {
   clientName: string;
   clientEmail: string;
   clientPhone: string;
+  /** Optional: 'organization' makes `clientName` the organization's name. Omitted = individual */
+  clientType?: ClientType;
+  /** Optional: person to address at the organization ("Attn:"). Only shown for organizations */
+  clientContact?: string;
   pianoMake: string;
   pianoModel: string;
   pianoSerial: string;
@@ -97,6 +103,10 @@ export interface Invoice {
   clientName: string;
   clientEmail: string;
   clientPhone: string;
+  /** Optional: 'organization' makes `clientName` the organization's name. Omitted = individual */
+  clientType?: ClientType;
+  /** Optional: person to address at the organization ("Attn:"). Only shown for organizations */
+  clientContact?: string;
   pianoMake: string;
   pianoModel: string;
   pianoSerial: string;

@@ -1,6 +1,8 @@
 import { Estimate } from '../../../types';
 import { Input } from '../../../components/Input';
+import { ClientTypeToggle } from '../../../components/ClientTypeToggle';
 import { formatPhone } from '../../../utils/format';
+import { isOrganization } from '../../../utils/client';
 import { VALID_DAYS_OPTIONS } from '../../../utils/expiration';
 
 interface ClientInfoFormProps {
@@ -9,15 +11,23 @@ interface ClientInfoFormProps {
 }
 
 export function ClientInfoForm({ estimate, onChange }: ClientInfoFormProps) {
+  const isOrg = isOrganization(estimate);
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
-      <h2 className="font-semibold text-slate-700">Client Information</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-semibold text-slate-700">Client Information</h2>
+        <ClientTypeToggle
+          value={estimate.clientType}
+          onChange={clientType => onChange({ clientType })}
+        />
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input
-          label="Client Name"
+          id="client-name"
+          label={isOrg ? 'Organization Name' : 'Client Name'}
           value={estimate.clientName}
           onChange={e => onChange({ clientName: e.target.value })}
-          placeholder="Jane Smith"
+          placeholder={isOrg ? 'Riverside Country Club' : 'Jane Smith'}
         />
         <Input
           label="Estimate #"
@@ -47,12 +57,22 @@ export function ClientInfoForm({ estimate, onChange }: ClientInfoFormProps) {
           </select>
           <p className="text-xs text-slate-500">Optional — shown on the estimate as an expiration date.</p>
         </div>
+        {isOrg && (
+          <Input
+            id="client-contact"
+            label="Contact Person"
+            value={estimate.clientContact ?? ''}
+            onChange={e => onChange({ clientContact: e.target.value })}
+            placeholder="Jane Smith, Events Manager"
+            hint='Optional — printed as "Attn:" under the organization name.'
+          />
+        )}
         <Input
           label="Email"
           type="email"
           value={estimate.clientEmail}
           onChange={e => onChange({ clientEmail: e.target.value })}
-          placeholder="jane@example.com"
+          placeholder={isOrg ? 'accounts@example.com' : 'jane@example.com'}
         />
         <Input
           label="Phone"

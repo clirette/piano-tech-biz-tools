@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { DEFAULT_COMPANY_SETTINGS, CompanySettings, Invoice } from '../../types';
+import { DEFAULT_COMPANY_SETTINGS, CompanySettings, Estimate, Invoice } from '../../types';
 
 // The invoice PDF is the second, independent renderer of a document. These tests
 // guard the failure mode CLAUDE.md warns about: a section that renders on screen
@@ -11,6 +11,7 @@ import { DEFAULT_COMPANY_SETTINGS, CompanySettings, Invoice } from '../../types'
 // arguments, and `save` is neutered so jsdom does not attempt a download.
 
 const rectCalls: number[][] = [];
+const textCalls: string[] = [];
 
 vi.mock('jspdf', async importOriginal => {
   const actual = await importOriginal<typeof import('jspdf')>();
@@ -28,6 +29,13 @@ vi.mock('jspdf', async importOriginal => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (realRect as any)(...a);
       };
+      const realText = this.text.bind(this);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.text = ((...a: any[]) => {
+        textCalls.push(...[a[0]].flat().map(String));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (realText as any)(...a);
+      }) as typeof this.text;
       // `save` is overloaded (it can return a Promise), so cast rather than
       // try to satisfy both signatures with a stub.
       this.save = ((): RecordingPdf => this) as typeof this.save;
@@ -37,7 +45,7 @@ vi.mock('jspdf', async importOriginal => {
   return { ...actual, default: RecordingPdf, jsPDF: RecordingPdf };
 });
 
-const { generateInvoicePdf } = await import('../pdf');
+const { generateEstimatePdf, generateInvoicePdf } = await import('../pdf');
 
 const invoice: Invoice = {
   id: 'inv-1',
@@ -88,6 +96,7 @@ function qrModuleRects() {
 
 beforeEach(() => {
   rectCalls.length = 0;
+  textCalls.length = 0;
 });
 
 describe('generateInvoicePdf — payment QR', () => {
@@ -163,5 +172,46 @@ describe('generateInvoicePdf — payment QR', () => {
       expect(y).toBeGreaterThanOrEqual(0);
       expect(y + h).toBeLessThanOrEqual(792);
     }
+  });
+});
+
+describe('client block — organizations', () => {
+  const org = {
+    clientName: 'Riverside Country Club',
+    clientType: 'organization' as const,
+    clientContact: 'Dana Ruiz',
+  };
+
+  it('prints the organization name and an Attn line on the invoice', () => {
+    generateInvoicePdf({ ...invoice, ...org }, companyWith({}));
+    expect(textCalls).toContain('Riverside Country Club');
+    expect(textCalls).toContain('Attn: Dana Ruiz');
+  });
+
+  it('prints the Attn line on the estimate', () => {
+    const estimate: Estimate = {
+      id: invoice.id,
+      estimateNumber: 'EST-003',
+      clientEmail: invoice.clientEmail,
+      clientPhone: invoice.clientPhone,
+      pianoMake: invoice.pianoMake,
+      pianoModel: invoice.pianoModel,
+      pianoSerial: invoice.pianoSerial,
+      pianoLocation: invoice.pianoLocation,
+      date: invoice.date,
+      lineItems: invoice.lineItems,
+      notes: invoice.notes,
+      status: 'sent',
+      createdAt: invoice.createdAt,
+      updatedAt: invoice.updatedAt,
+      ...org,
+    };
+    generateEstimatePdf(estimate, companyWith({}));
+    expect(textCalls).toContain('Attn: Dana Ruiz');
+  });
+
+  it('prints no Attn line for an individual, even with a leftover contact', () => {
+    generateInvoicePdf({ ...invoice, clientType: 'individual', clientContact: 'Dana Ruiz' }, companyWith({}));
+    expect(textCalls.some(t => t.startsWith('Attn:'))).toBe(false);
   });
 });

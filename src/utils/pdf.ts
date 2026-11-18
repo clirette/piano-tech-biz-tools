@@ -5,6 +5,7 @@ import { formatCurrency } from './currency';
 import { lineItemTotal, estimateTotal } from './calculations';
 import { expirationDate, validityStatement } from './expiration';
 import { qrMatrix, shouldShowPaymentQr } from './qr';
+import { clientDetailLines } from './client';
 
 const LINE_ITEM_FONT_SIZE = 10;
 const LINE_ITEM_CELL_PADDING = 6;
@@ -63,11 +64,7 @@ export function generateEstimatePdf(estimate: Estimate, company: CompanySettings
   y += 14;
 
   doc.setFontSize(10).setFont('helvetica', 'normal').setTextColor(50, 50, 50);
-  const clientLines = [
-    estimate.clientName,
-    estimate.clientEmail,
-    estimate.clientPhone,
-  ].filter(Boolean);
+  const clientLines = [estimate.clientName, ...clientDetailLines(estimate)].filter(Boolean);
   clientLines.forEach(line => { doc.text(line, margin, y); y += 14; });
 
   let pianoY = y - clientLines.length * 14;
@@ -204,7 +201,7 @@ export function generateInvoicePdf(invoice: Invoice, company: CompanySettings): 
   y += 14;
 
   doc.setFontSize(10).setFont('helvetica', 'normal').setTextColor(50, 50, 50);
-  const clientLines = [invoice.clientName, invoice.clientEmail, invoice.clientPhone].filter(Boolean);
+  const clientLines = [invoice.clientName, ...clientDetailLines(invoice)].filter(Boolean);
   clientLines.forEach(line => { doc.text(line, margin, y); y += 14; });
 
   let pianoY = y - clientLines.length * 14;

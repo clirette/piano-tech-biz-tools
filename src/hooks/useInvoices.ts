@@ -1,4 +1,4 @@
-import { Invoice, InvoiceStatus, LineItem } from '../types';
+import { ClientType, Invoice, InvoiceStatus, LineItem } from '../types';
 import { useLocalStorage } from './useLocalStorage';
 import { generateId } from '../utils/generateId';
 
@@ -53,6 +53,8 @@ export function useInvoices() {
     clientName: string;
     clientEmail: string;
     clientPhone: string;
+    clientType?: ClientType;
+    clientContact?: string;
     pianoMake: string;
     pianoModel: string;
     pianoSerial: string;

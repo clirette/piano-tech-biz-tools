@@ -1,6 +1,8 @@
 import { Invoice } from '../../../types';
 import { Input } from '../../../components/Input';
+import { ClientTypeToggle } from '../../../components/ClientTypeToggle';
 import { formatPhone } from '../../../utils/format';
+import { isOrganization } from '../../../utils/client';
 
 interface InvoiceClientInfoFormProps {
   invoice: Invoice;
@@ -8,15 +10,23 @@ interface InvoiceClientInfoFormProps {
 }
 
 export function InvoiceClientInfoForm({ invoice, onChange }: InvoiceClientInfoFormProps) {
+  const isOrg = isOrganization(invoice);
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
-      <h2 className="font-semibold text-slate-700">Client Information</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-semibold text-slate-700">Client Information</h2>
+        <ClientTypeToggle
+          value={invoice.clientType}
+          onChange={clientType => onChange({ clientType })}
+        />
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input
-          label="Client Name"
+          id="client-name"
+          label={isOrg ? 'Organization Name' : 'Client Name'}
           value={invoice.clientName}
           onChange={e => onChange({ clientName: e.target.value })}
-          placeholder="Jane Smith"
+          placeholder={isOrg ? 'Riverside Country Club' : 'Jane Smith'}
         />
         <Input
           label="Invoice #"
@@ -36,12 +46,22 @@ export function InvoiceClientInfoForm({ invoice, onChange }: InvoiceClientInfoFo
           value={invoice.dueDate}
           onChange={e => onChange({ dueDate: e.target.value })}
         />
+        {isOrg && (
+          <Input
+            id="client-contact"
+            label="Contact Person"
+            value={invoice.clientContact ?? ''}
+            onChange={e => onChange({ clientContact: e.target.value })}
+            placeholder="Jane Smith, Events Manager"
+            hint='Optional — printed as "Attn:" under the organization name.'
+          />
+        )}
         <Input
           label="Email"
           type="email"
           value={invoice.clientEmail}
           onChange={e => onChange({ clientEmail: e.target.value })}
-          placeholder="jane@example.com"
+          placeholder={isOrg ? 'accounts@example.com' : 'jane@example.com'}
         />
         <Input
           label="Phone"

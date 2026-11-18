@@ -9,6 +9,7 @@ import { formatCurrency } from '../../utils/currency';
 import { lineItemTotal, estimateTotal } from '../../utils/calculations';
 import { generateInvoicePdf } from '../../utils/pdf';
 import { QrCode } from '../../components/QrCode';
+import { clientDetailLines } from '../../utils/client';
 import { shouldShowPaymentQr } from '../../utils/qr';
 
 export function InvoicePreviewPage() {
@@ -110,8 +111,7 @@ export function InvoicePreviewPage() {
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Bill To</h3>
             <div className="text-sm text-slate-700 space-y-0.5">
               {invoice.clientName && <p className="font-semibold">{invoice.clientName}</p>}
-              {invoice.clientEmail && <p>{invoice.clientEmail}</p>}
-              {invoice.clientPhone && <p>{invoice.clientPhone}</p>}
+              {clientDetailLines(invoice).map((line, i) => <p key={i}>{line}</p>)}
             </div>
           </div>
           <div>
