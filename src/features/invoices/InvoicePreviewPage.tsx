@@ -10,7 +10,13 @@ import { lineItemTotal, estimateTotal } from '../../utils/calculations';
 import { generateInvoicePdf } from '../../utils/pdf';
 import { QrCode } from '../../components/QrCode';
 import { clientDetailLines } from '../../utils/client';
-import { shouldShowPaymentQr } from '../../utils/qr';
+import { qrMatrix } from '../../utils/qr';
+import {
+  acceptedPaymentLabels,
+  invoiceOnlineMethods,
+  methodShowsQr,
+  payLinkLabel,
+} from '../../utils/payment';
 
 export function InvoicePreviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -35,12 +41,9 @@ export function InvoicePreviewPage() {
     return `${month}/${day}/${year}`;
   }
 
-  const paymentMethods: string[] = [];
-  if (payment?.acceptCash) paymentMethods.push('Cash');
-  if (payment?.acceptCheck) paymentMethods.push('Check');
-  if (payment?.acceptOnlineCard) paymentMethods.push('Credit Card');
-
-  const showPaymentQr = shouldShowPaymentQr(payment);
+  const paymentMethods = acceptedPaymentLabels(payment);
+  const onlineMethods = invoiceOnlineMethods(payment);
+  const qrMethods = onlineMethods.filter(m => methodShowsQr(m) && qrMatrix(m.url!));
 
   return (
     <div>
@@ -188,7 +191,7 @@ export function InvoicePreviewPage() {
         {paymentMethods.length > 0 && (
           <div className="border-t border-slate-200 pt-4 mb-4">
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Payment</h3>
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-sm text-slate-600 mb-1">
                   <span className="font-medium">Accepted:</span> {paymentMethods.join(', ')}
@@ -198,23 +201,36 @@ export function InvoicePreviewPage() {
                     Make check payable to: <span className="font-semibold">{payment.checkPayableTo}</span>
                   </p>
                 )}
-                {payment.acceptOnlineCard && payment.onlineCardUrl && (
-                  <p className="text-sm mt-1">
-                    <a
-                      href={payment.onlineCardUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-600 font-semibold hover:underline"
-                    >
-                      {payment.onlineCardName ? `Pay by Credit Card via ${payment.onlineCardName}` : 'Pay by Credit Card'} →
-                    </a>
-                  </p>
-                )}
+                {onlineMethods.map(method => (
+                  <div key={method.id} className="text-sm mt-2">
+                    {method.url ? (
+                      <a
+                        href={method.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-600 font-semibold hover:underline"
+                      >
+                        {payLinkLabel(method)} →
+                      </a>
+                    ) : (
+                      <p className="font-semibold text-slate-700">{method.name}</p>
+                    )}
+                    {method.instructions && (
+                      <p className="text-slate-600 whitespace-pre-wrap break-words">{method.instructions}</p>
+                    )}
+                  </div>
+                ))}
               </div>
-              {showPaymentQr && (
-                <div className="flex-shrink-0 text-center">
-                  <QrCode value={payment.onlineCardUrl} size={92} label="Scan to pay" />
-                  <p className="text-[10px] text-slate-400 mt-1">Scan to pay</p>
+              {qrMethods.length > 0 && (
+                <div className="flex flex-wrap gap-3 sm:justify-end sm:max-w-[330px] flex-shrink-0">
+                  {qrMethods.map(method => (
+                    <div key={method.id} className="text-center w-[92px]">
+                      <QrCode value={method.url!} size={92} label={`Scan to pay with ${method.name}`} />
+                      <p className="text-[10px] text-slate-400 mt-1 truncate">
+                        {qrMethods.length === 1 ? 'Scan to pay' : method.name}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

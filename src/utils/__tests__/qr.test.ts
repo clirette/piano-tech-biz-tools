@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { qrMatrix, shouldShowPaymentQr } from '../qr';
-import type { PaymentSettings } from '../../types';
+import { qrMatrix } from '../qr';
 
 describe('qrMatrix', () => {
   it('returns a square matrix for a URL', () => {
@@ -68,42 +67,5 @@ describe('qrMatrix', () => {
     // Well past the ~2953 byte ceiling of a version 40 byte-mode symbol.
     expect(() => qrMatrix('x'.repeat(10000))).not.toThrow();
     expect(qrMatrix('x'.repeat(10000))).toBeNull();
-  });
-});
-
-describe('shouldShowPaymentQr', () => {
-  const base: PaymentSettings = {
-    acceptCash: false,
-    acceptCheck: false,
-    checkPayableTo: '',
-    acceptOnlineCard: true,
-    onlineCardName: 'Venmo',
-    onlineCardUrl: 'https://venmo.com/u/chase-tunes',
-    showPaymentQr: true,
-  };
-
-  it('shows the QR when online payment is on with a link', () => {
-    expect(shouldShowPaymentQr(base)).toBe(true);
-  });
-
-  it('defaults to on for settings saved before the flag existed', () => {
-    // The backward-compat case: older localStorage and backup files have no
-    // showPaymentQr key at all, and must still get a QR.
-    const legacy = { ...base };
-    delete legacy.showPaymentQr;
-    expect(shouldShowPaymentQr(legacy)).toBe(true);
-  });
-
-  it('hides the QR when explicitly switched off', () => {
-    expect(shouldShowPaymentQr({ ...base, showPaymentQr: false })).toBe(false);
-  });
-
-  it('hides the QR when there is no link or online payment is off', () => {
-    expect(shouldShowPaymentQr({ ...base, onlineCardUrl: '' })).toBe(false);
-    expect(shouldShowPaymentQr({ ...base, acceptOnlineCard: false })).toBe(false);
-  });
-
-  it('hides the QR when payment settings are missing entirely', () => {
-    expect(shouldShowPaymentQr(undefined)).toBe(false);
   });
 });

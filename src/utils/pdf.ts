@@ -1,10 +1,23 @@
 import jsPDF from 'jspdf';
 import autoTable, { CellHookData } from 'jspdf-autotable';
-import { Estimate, Invoice, CompanySettings, LineItem } from '../types';
+import {
+  Estimate,
+  Invoice,
+  CompanySettings,
+  LineItem,
+  OnlinePaymentMethod,
+  PaymentSettings,
+} from '../types';
 import { formatCurrency } from './currency';
 import { lineItemTotal, estimateTotal } from './calculations';
 import { expirationDate, validityStatement } from './expiration';
-import { qrMatrix, shouldShowPaymentQr } from './qr';
+import { qrMatrix } from './qr';
+import {
+  acceptedPaymentLabels,
+  invoiceOnlineMethods,
+  methodShowsQr,
+  payLinkLabel,
+} from './payment';
 import { clientDetailLines } from './client';
 
 const LINE_ITEM_FONT_SIZE = 10;
@@ -13,6 +26,9 @@ const LINE_ITEM_CELL_PADDING = 6;
 const LINE_ITEM_FIXED_WIDTHS = { type: 55, qty: 35, hours: 45, unitPrice: 75, total: 75 };
 /** Printed edge length of the scan-to-pay QR, in points. */
 const PAYMENT_QR_SIZE = 72;
+/** Scan-to-pay QRs per row before wrapping, and the space between them. */
+const PAYMENT_QR_MAX_COLS = 3;
+const PAYMENT_QR_GAP = 12;
 /** Modules of white margin the QR spec requires around the symbol. */
 const QR_QUIET_ZONE = 4;
 
@@ -257,56 +273,14 @@ export function generateInvoicePdf(invoice: Invoice, company: CompanySettings): 
     y += lines.length * 14 + 16;
   }
 
-  // Payment methods
-  const { payment } = company;
-  const paymentMethods: string[] = [];
-  if (payment?.acceptCash) paymentMethods.push('Cash');
-  if (payment?.acceptCheck) paymentMethods.push('Check');
-  if (payment?.acceptOnlineCard) paymentMethods.push('Credit Card');
-
-  if (paymentMethods.length > 0) {
-    doc.setDrawColor(200, 200, 200);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 14;
-    const blockTop = y;
-    doc.setFontSize(10).setFont('helvetica', 'bold').setTextColor(30, 30, 30);
-    doc.text('Payment', margin, y);
-    y += 14;
-    doc.setFont('helvetica', 'normal').setTextColor(60, 60, 60);
-    doc.text(`Accepted: ${paymentMethods.join(', ')}`, margin, y);
-    y += 14;
-    if (payment.acceptCheck && payment.checkPayableTo) {
-      doc.text(`Make check payable to: ${payment.checkPayableTo}`, margin, y);
-      y += 14;
-    }
-    if (payment.acceptOnlineCard && payment.onlineCardUrl) {
-      const linkLabel = payment.onlineCardName ? `Pay by Credit Card via ${payment.onlineCardName}` : 'Pay by Credit Card';
-      doc.setTextColor(66, 133, 244).setFont('helvetica', 'bold');
-      doc.textWithLink(linkLabel, margin, y, { url: payment.onlineCardUrl });
-      y += 14;
-    }
-
-    // The scan-to-pay QR sits to the RIGHT of the payment text, aligned with the
-    // top of the block. This page has no page-break handling, so stacking the QR
-    // below the text could push the review line off the bottom of a long invoice;
-    // beside it, the block usually costs no extra height at all.
-    if (shouldShowPaymentQr(payment)) {
-      const matrix = qrMatrix(payment.onlineCardUrl);
-      if (matrix) {
-        const qrX = pageWidth - margin - PAYMENT_QR_SIZE;
-        drawQrMatrix(doc, matrix, qrX, blockTop, PAYMENT_QR_SIZE);
-        const captionY = blockTop + PAYMENT_QR_SIZE + 9;
-        doc.setFontSize(7).setFont('helvetica', 'normal').setTextColor(140, 140, 140);
-        doc.text('Scan to pay', qrX + PAYMENT_QR_SIZE / 2, captionY, { align: 'center' });
-        doc.setFontSize(10);
-        y = Math.max(y, captionY + 5);
-      }
-    }
-
-    y += 6;
-  }
+  const pageHeight = doc.internal.pageSize.getHeight();
+  y = drawPaymentBlock(doc, company.payment, y, pageWidth, pageHeight, margin);
 
   if (company.googleReviewUrl && company.showGoogleReviewOnInvoices) {
+    if (y + 20 > pageHeight - margin) {
+      doc.addPage();
+      y = margin;
+    }
     doc.setDrawColor(200, 200, 200);
     doc.line(margin, y, pageWidth - margin, y);
     y += 16;
@@ -322,6 +296,118 @@ export function generateInvoicePdf(invoice: Invoice, company: CompanySettings): 
 
   const clientSlug = invoice.clientName.replace(/\s+/g, '_') || 'invoice';
   doc.save(`invoice_${clientSlug}_${invoice.date}.pdf`);
+}
+
+type PaymentLine =
+  | { kind: 'text'; text: string; bold?: boolean; gapBefore?: number }
+  | { kind: 'link'; text: string; url: string; gapBefore?: number };
+
+/**
+ * Draws the invoice's Payment section and returns the new `y`. The on-screen
+ * twin is the Payment block in `InvoicePreviewPage.tsx`; both read the same
+ * helpers from `utils/payment.ts`.
+ *
+ * Text runs down the left; scan-to-pay QRs sit in a grid on the right, aligned
+ * with the top of the block, so a QR usually costs no extra height. The block
+ * is measured before drawing and moved to a fresh page if it would run off the
+ * bottom — with several methods and wrapped instructions it can get tall.
+ */
+function drawPaymentBlock(
+  doc: jsPDF,
+  payment: PaymentSettings | undefined,
+  y: number,
+  pageWidth: number,
+  pageHeight: number,
+  margin: number,
+): number {
+  const accepted = acceptedPaymentLabels(payment);
+  if (!payment || accepted.length === 0) return y;
+
+  const methods = invoiceOnlineMethods(payment);
+  const qrs = methods
+    .filter(methodShowsQr)
+    .map(m => ({ method: m, matrix: qrMatrix(m.url!) }))
+    .filter((q): q is { method: OnlinePaymentMethod; matrix: boolean[][] } => q.matrix !== null);
+
+  const cols = Math.min(qrs.length, PAYMENT_QR_MAX_COLS);
+  const rows = cols ? Math.ceil(qrs.length / cols) : 0;
+  const qrCellHeight = PAYMENT_QR_SIZE + 14; // symbol + caption
+  const qrGridWidth = cols ? cols * PAYMENT_QR_SIZE + (cols - 1) * PAYMENT_QR_GAP : 0;
+  const qrGridHeight = rows ? rows * qrCellHeight + (rows - 1) * PAYMENT_QR_GAP : 0;
+  const textWidth = pageWidth - margin * 2 - (cols ? qrGridWidth + 16 : 0);
+
+  // Pre-wrap every line in the font it will be drawn in, so the height is
+  // known before anything is drawn.
+  const lines: PaymentLine[] = [];
+  const wrap = (text: string, bold: boolean): string[] => {
+    doc.setFontSize(10).setFont('helvetica', bold ? 'bold' : 'normal');
+    return doc.splitTextToSize(text, textWidth);
+  };
+  wrap(`Accepted: ${accepted.join(', ')}`, false).forEach(t => lines.push({ kind: 'text', text: t }));
+  if (payment.acceptCheck && payment.checkPayableTo) {
+    wrap(`Make check payable to: ${payment.checkPayableTo}`, false).forEach(t =>
+      lines.push({ kind: 'text', text: t }),
+    );
+  }
+  for (const m of methods) {
+    const head: PaymentLine[] = m.url
+      ? wrap(payLinkLabel(m), true).map(t => ({ kind: 'link' as const, text: t, url: m.url! }))
+      : wrap(m.name, true).map(t => ({ kind: 'text' as const, text: t, bold: true }));
+    head[0].gapBefore = 4;
+    lines.push(...head);
+    if (m.instructions) {
+      wrap(m.instructions, false).forEach(t => lines.push({ kind: 'text', text: t }));
+    }
+  }
+  const textHeight = lines.reduce((h, l) => h + 14 + (l.gapBefore ?? 0), 0);
+
+  // separator (14) + heading (14) + body + trailing space (6)
+  const blockHeight = 14 + 14 + Math.max(textHeight, qrGridHeight) + 6;
+  if (y + blockHeight > pageHeight - margin) {
+    doc.addPage();
+    y = margin;
+  }
+
+  doc.setDrawColor(200, 200, 200);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 14;
+  const blockTop = y;
+
+  doc.setFontSize(10).setFont('helvetica', 'bold').setTextColor(30, 30, 30);
+  doc.text('Payment', margin, y);
+  y += 14;
+
+  for (const line of lines) {
+    y += line.gapBefore ?? 0;
+    if (line.kind === 'link') {
+      doc.setFont('helvetica', 'bold').setTextColor(66, 133, 244);
+      doc.textWithLink(line.text, margin, y, { url: line.url });
+    } else if (line.bold) {
+      doc.setFont('helvetica', 'bold').setTextColor(30, 30, 30);
+      doc.text(line.text, margin, y);
+    } else {
+      doc.setFont('helvetica', 'normal').setTextColor(60, 60, 60);
+      doc.text(line.text, margin, y);
+    }
+    y += 14;
+  }
+
+  if (cols) {
+    const gridLeft = pageWidth - margin - qrGridWidth;
+    qrs.forEach(({ method, matrix }, i) => {
+      const qrX = gridLeft + (i % cols) * (PAYMENT_QR_SIZE + PAYMENT_QR_GAP);
+      const qrY = blockTop + Math.floor(i / cols) * (qrCellHeight + PAYMENT_QR_GAP);
+      drawQrMatrix(doc, matrix, qrX, qrY, PAYMENT_QR_SIZE);
+      doc.setFontSize(7).setFont('helvetica', 'normal').setTextColor(140, 140, 140);
+      const caption = qrs.length === 1 ? 'Scan to pay' : method.name;
+      const fitted: string = doc.splitTextToSize(caption, PAYMENT_QR_SIZE)[0] ?? '';
+      doc.text(fitted, qrX + PAYMENT_QR_SIZE / 2, qrY + PAYMENT_QR_SIZE + 9, { align: 'center' });
+    });
+    doc.setFontSize(10);
+    y = Math.max(y, blockTop + qrGridHeight);
+  }
+
+  return y + 6;
 }
 
 /**

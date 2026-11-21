@@ -91,7 +91,7 @@ interface CompanySettings {
   googleReviewUrl: string;
   showGoogleReviewOnEstimates: boolean;
   showGoogleReviewOnInvoices: boolean;
-  payment: PaymentSettings;   // cash / check / online card toggles + details
+  payment: PaymentSettings;   // cash / check toggles + onlineMethods list (Venmo, Zelle… each with link and/or instructions); read via getOnlineMethods()
 }
 ```
 

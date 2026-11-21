@@ -7,7 +7,28 @@ import { Input } from '../../components/Input';
 import { ImportButton } from '../../components/ImportButton';
 import { formatPhone } from '../../utils/format';
 import { exportCompanyBackup, AnyBackup, CompanyBackup } from '../../utils/backup';
-import { CompanySettings, PaymentSettings } from '../../types';
+import { TextArea } from '../../components/TextArea';
+import { generateId } from '../../utils/generateId';
+import { getOnlineMethods } from '../../utils/payment';
+import { CompanySettings, OnlinePaymentMethod, PaymentSettings } from '../../types';
+
+const QUICK_ADD_METHODS = ['Venmo', 'Zelle', 'PayPal', 'Cash App'];
+
+/** Placeholder examples for the link/instructions fields, keyed off the method name. */
+function methodHints(name: string): { url: string; instructions: string } {
+  switch (name.trim().toLowerCase()) {
+    case 'venmo':
+      return { url: 'https://venmo.com/u/your-username', instructions: '@your-username' };
+    case 'zelle':
+      return { url: 'https://…', instructions: 'Send to you@example.com or (555) 555-0100' };
+    case 'paypal':
+      return { url: 'https://paypal.me/yourname', instructions: 'Send to you@example.com' };
+    case 'cash app':
+      return { url: 'https://cash.app/$yourcashtag', instructions: '$yourcashtag' };
+    default:
+      return { url: 'https://…', instructions: 'How clients should pay you' };
+  }
+}
 
 export function CompanySettingsPage() {
   const { settings, setSettings } = useCompanySettings();
@@ -44,7 +65,29 @@ export function CompanySettingsPage() {
     setTimeout(() => setSaved(false), 3000);
   }
 
+  /** Edits always write `onlineMethods`, which retires the legacy single-method fields. */
+  function updateOnlineMethods(fn: (methods: OnlinePaymentMethod[]) => OnlinePaymentMethod[]) {
+    setSettings(prev => ({
+      ...prev,
+      payment: { ...prev.payment, onlineMethods: fn(getOnlineMethods(prev.payment)) },
+    }));
+    setSaved(false);
+  }
+
+  function addMethod(name: string) {
+    updateOnlineMethods(ms => [...ms, { id: generateId(), name, url: '', instructions: '' }]);
+  }
+
+  function updateMethod(id: string, patch: Partial<OnlinePaymentMethod>) {
+    updateOnlineMethods(ms => ms.map(m => (m.id === id ? { ...m, ...patch } : m)));
+  }
+
+  function removeMethod(id: string) {
+    updateOnlineMethods(ms => ms.filter(m => m.id !== id));
+  }
+
   const { payment } = settings;
+  const onlineMethods = getOnlineMethods(payment);
 
   return (
     <div className="max-w-2xl">
@@ -178,65 +221,109 @@ export function CompanySettingsPage() {
             )}
           </div>
 
-          {/* Online / Card */}
-          <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-4 h-4 rounded accent-brand-600"
-                checked={payment.acceptOnlineCard}
-                onChange={e => handlePayment('acceptOnlineCard', e.target.checked)}
-              />
-              <span className="text-sm font-medium text-slate-700">Online / Credit Card</span>
-            </label>
-            {payment.acceptOnlineCard && (
-              <div className="ml-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="Service name"
-                  value={payment.onlineCardName}
-                  onChange={e => handlePayment('onlineCardName', e.target.value)}
-                  placeholder="Stripe, Venmo, Zelle…"
-                />
-                <Input
-                  label="Payment link"
-                  type="url"
-                  value={payment.onlineCardUrl}
-                  onChange={e => handlePayment('onlineCardUrl', e.target.value)}
-                  placeholder="https://…"
-                />
-                <div className="sm:col-span-2">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 rounded accent-brand-600 mt-0.5"
-                      checked={payment.showPaymentQr !== false}
-                      onChange={e => handlePayment('showPaymentQr', e.target.checked)}
-                    />
-                    <span className="text-sm text-slate-700">
-                      Show a scannable QR code on invoices
-                      <span className="block text-xs text-slate-400">
-                        Clients can scan to open your payment link instead of typing it.
-                      </span>
-                    </span>
-                  </label>
-                  {payment.showPaymentQr !== false && payment.onlineCardUrl && (
-                    <div className="mt-3 ml-7">
-                      {qrMatrix(payment.onlineCardUrl) ? (
-                        <div className="inline-block text-center">
-                          <QrCode value={payment.onlineCardUrl} size={96} label="Payment QR preview" />
-                          <p className="text-[10px] text-slate-400 mt-1">Preview</p>
+          {/* Online methods (Venmo, Zelle, card link…) */}
+          <div className="space-y-3 pt-2 border-t border-slate-100">
+            <div>
+              <h3 className="text-sm font-medium text-slate-700">Online payment</h3>
+              <p className="text-xs text-slate-500">
+                Add each service you accept. Give it a payment link, instructions on how to pay, or both.
+              </p>
+            </div>
+
+            {onlineMethods.map(method => {
+              const hints = methodHints(method.name);
+              return (
+                <div key={method.id} className="rounded-lg border border-slate-200 p-4 space-y-3">
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1">
+                      <Input
+                        id={`pm-${method.id}-name`}
+                        label="Name"
+                        list="payment-method-names"
+                        value={method.name}
+                        onChange={e => updateMethod(method.id, { name: e.target.value })}
+                        placeholder="Venmo, Zelle, Credit Card…"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() => removeMethod(method.id)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                  <Input
+                    id={`pm-${method.id}-url`}
+                    label="Payment link (optional)"
+                    type="url"
+                    value={method.url ?? ''}
+                    onChange={e => updateMethod(method.id, { url: e.target.value })}
+                    placeholder={hints.url}
+                  />
+                  <TextArea
+                    id={`pm-${method.id}-instructions`}
+                    label="Instructions (optional)"
+                    rows={2}
+                    value={method.instructions ?? ''}
+                    onChange={e => updateMethod(method.id, { instructions: e.target.value })}
+                    placeholder={hints.instructions}
+                  />
+                  {method.url?.trim() && (
+                    <div>
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded accent-brand-600 mt-0.5"
+                          checked={method.showQr !== false}
+                          onChange={e => updateMethod(method.id, { showQr: e.target.checked })}
+                        />
+                        <span className="text-sm text-slate-700">
+                          Show a scannable QR code on invoices
+                          <span className="block text-xs text-slate-400">
+                            Clients can scan to open this link instead of typing it.
+                          </span>
+                        </span>
+                      </label>
+                      {method.showQr !== false && (
+                        <div className="mt-3 ml-7">
+                          {qrMatrix(method.url.trim()) ? (
+                            <div className="inline-block text-center">
+                              <QrCode value={method.url.trim()} size={96} label={`${method.name || 'Payment'} QR preview`} />
+                              <p className="text-[10px] text-slate-400 mt-1">Preview</p>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                              This link is too long to fit in a QR code. Invoices will show it as a
+                              text link instead.
+                            </p>
+                          )}
                         </div>
-                      ) : (
-                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                          This link is too long to fit in a QR code. Invoices will show it as a
-                          text link instead.
-                        </p>
                       )}
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              );
+            })}
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-slate-500">Add:</span>
+              {QUICK_ADD_METHODS.map(name => (
+                <Button key={name} type="button" variant="secondary" size="sm" onClick={() => addMethod(name)}>
+                  + {name}
+                </Button>
+              ))}
+              <Button type="button" variant="secondary" size="sm" onClick={() => addMethod('')}>
+                + Other
+              </Button>
+            </div>
+            <datalist id="payment-method-names">
+              {[...QUICK_ADD_METHODS, 'Credit Card', 'Square', 'Stripe'].map(n => (
+                <option key={n} value={n} />
+              ))}
+            </datalist>
           </div>
         </div>
 

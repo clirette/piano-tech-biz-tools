@@ -1,21 +1,6 @@
 import qrcode from 'qrcode-generator';
-import type { PaymentSettings } from '../types';
 
 export type QrErrorCorrection = 'L' | 'M' | 'Q' | 'H';
-
-/**
- * Whether the invoice should carry a scan-to-pay QR.
- *
- * Lives here rather than at the call sites because the invoice has two
- * independent renderers (the preview JSX and the jsPDF export) and a gate
- * condition duplicated across both is exactly the kind of thing that drifts.
- *
- * `showPaymentQr` is optional, so settings saved before this feature existed
- * have it undefined — `!== false` makes those default to on.
- */
-export function shouldShowPaymentQr(payment: PaymentSettings | undefined): boolean {
-  return !!payment?.acceptOnlineCard && !!payment.onlineCardUrl && payment.showPaymentQr !== false;
-}
 
 /**
  * Builds the QR module matrix for `text` as rows of booleans, where `true` is a

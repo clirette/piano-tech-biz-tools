@@ -175,6 +175,80 @@ describe('generateInvoicePdf — payment QR', () => {
   });
 });
 
+describe('generateInvoicePdf — multiple online payment methods', () => {
+  /** Each QR paints one white PAYMENT_QR_SIZE (72pt) square as its ground. */
+  function qrSymbolCount() {
+    return rectCalls.filter(c => Number(c[2]) === 72 && Number(c[3]) === 72).length;
+  }
+
+  function companyWithMethods(methods: NonNullable<CompanySettings['payment']['onlineMethods']>) {
+    return companyWith({ acceptCash: true, onlineMethods: methods });
+  }
+
+  const venmo = { id: 'v', name: 'Venmo', url: 'https://venmo.com/u/chase-tunes', instructions: '@chase-tunes' };
+  const zelle = { id: 'z', name: 'Zelle', instructions: 'Send to (555) 555-0100\nMemo: invoice number' };
+  const paypal = { id: 'p', name: 'PayPal', url: 'https://paypal.me/chasetunes' };
+
+  it('lists every method on the Accepted line', () => {
+    generateInvoicePdf(invoice, companyWithMethods([venmo, zelle, paypal]));
+    expect(textCalls).toContain('Accepted: Cash, Venmo, Zelle, PayPal');
+  });
+
+  it('prints link labels, names, and every line of the instructions', () => {
+    generateInvoicePdf(invoice, companyWithMethods([venmo, zelle]));
+    expect(textCalls).toContain('Pay with Venmo');
+    expect(textCalls).toContain('@chase-tunes');
+    expect(textCalls).toContain('Zelle');
+    expect(textCalls).toContain('Send to (555) 555-0100');
+    expect(textCalls).toContain('Memo: invoice number');
+  });
+
+  it('draws one QR per method with a link, and none for instructions-only methods', () => {
+    generateInvoicePdf(invoice, companyWithMethods([venmo, zelle, paypal]));
+    expect(qrSymbolCount()).toBe(2);
+  });
+
+  it('respects a per-method QR opt-out', () => {
+    generateInvoicePdf(invoice, companyWithMethods([venmo, { ...paypal, showQr: false }]));
+    expect(qrSymbolCount()).toBe(1);
+  });
+
+  it('ignores the legacy fields once onlineMethods exists', () => {
+    generateInvoicePdf(invoice, companyWithMethods([zelle]));
+    expect(qrSymbolCount()).toBe(0);
+    expect(textCalls.some(t => t.includes('venmo'))).toBe(false);
+  });
+
+  it('keeps many QRs and long instructions on the page of a long invoice', () => {
+    const long: Invoice = {
+      ...invoice,
+      notes: 'Detail. '.repeat(120),
+      lineItems: Array.from({ length: 20 }, (_, i) => ({
+        id: `li${i}`,
+        description: `Service item ${i}`,
+        type: 'labor' as const,
+        quantity: 1,
+        unitPriceCents: 12000,
+      })),
+    };
+    const methods = Array.from({ length: 5 }, (_, i) => ({
+      id: `m${i}`,
+      name: `Service ${i}`,
+      url: `https://pay.example.com/${i}`,
+      instructions: 'Some instructions that are long enough to wrap onto a second line in the PDF. '.repeat(2),
+    }));
+    generateInvoicePdf(long, companyWithMethods(methods));
+
+    expect(qrSymbolCount()).toBe(5);
+    for (const call of qrModuleRects()) {
+      const y = Number(call[1]);
+      const h = Number(call[3]);
+      expect(y).toBeGreaterThanOrEqual(0);
+      expect(y + h).toBeLessThanOrEqual(792);
+    }
+  });
+});
+
 describe('client block — organizations', () => {
   const org = {
     clientName: 'Riverside Country Club',
